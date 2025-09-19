@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Действия 18+ — PWA (iOS ready)</title>
+<link rel="manifest" href="manifest.json">
+
+<!-- iOS PWA tweaks -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+
+<style>
+:root{--card:#111;--accent:#ff3366;--text:#eee}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+html,body{height:100%}
+body{margin:0;background:linear-gradient(180deg,#070707,#0f0f12);color:var(--text);min-height:100%;display:flex;flex-direction:column;align-items:center}
+.wrap{width:100%;max-width:960px;padding:16px;flex:1 0 auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-size:18px;margin:0}
+.btn{background:var(--accent);color:#fff;padding:10px 12px;border-radius:10px;border:0;font-weight:600;cursor:pointer}
+.small{background:transparent;border:1px solid rgba(255,255,255,0.12);padding:8px;border-radius:8px;color:var(--text);cursor:pointer}
+.select{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text)}
+.card{background:#121214;padding:18px;border-radius:14px;min-height:160px;display:flex;flex-direction:column;gap:10px;box-shadow:0 6px 18px rgba(0,0,0,0.6);margin-top:12px}
+.meta{display:flex;justify-content:space-between;align-items:center}
+.badge{background:rgba(255,255,255,0.08);padding:4px 8px;border-radius:999px;font-size:12px}
+.text{font-size:20px;line-height:1.35}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.search{width:100%;padding:10px;border-radius:10px;border:0;margin-top:10px}
+.list{display:grid;grid-template-columns:repeat(1,1fr);gap:10px;margin-top:12px}
+.item{background:#0c0c0e;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.footer{color:#aaa;font-size:12px;margin:14px 0 24px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);color:#fff;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;z-index:9999}
+.overlay .panel{max-width:520px}
+.overlay button{margin-top:12px}
+@supports (-webkit-touch-callout: none) {
+  .wrap{min-height: -webkit-fill-available;}
+}
+</style>
+</head>
+<body>
+<div class="overlay" id="qlOverlay">
+  <div class="panel">
+    <h2 style="margin-top:0">Открой в Safari</h2>
+    <p>Похоже, файл открыт в режиме предпросмотра iOS («Quick Look»), где JavaScript отключён. Чтобы приложение работало:</p>
+    <ol style="text-align:left;line-height:1.4">
+      <li>Нажми «Поделиться».</li>
+      <li>Выбери <strong>«Открыть в Safari»</strong>.</li>
+      <li>В Safari нажми <strong>«Поделиться → На экран «Домой»»</strong> для установки.</li>
+    </ol>
+    <button class="btn" id="tryOpenBtn">Попробовать открыть в Safari</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <h1>Действия 18+ — PWA</h1>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button id="newBtn" class="btn">Случайно</button>
+      <select id="difficulty" class="select">
+        <option value="all">Все уровни</option>
+        <option value="warmup">Разогрев</option>
+        <option value="game">Игровая</option>
+        <option value="final">Финал</option>
+      </select>
+      <select id="target" class="select">
+        <option value="all">Для всех</option>
+        <option value="for_her">Для неё</option>
+        <option value="for_him">Для него</option>
+        <option value="both">Обоим</option>
+      </select>
+      <button id="listBtn" class="small">Список</button>
+      <button id="importBtn" class="small">Импорт JSON</button>
+      <button id="installBtn" class="small">Установить</button>
+      <input id="fileInput" type="file" accept="application/json" style="display:none" />
+    </div>
+  </header>
+
+  <input id="search" class="search" placeholder="Поиск (например: вибратор, плётка, поза)" />
+
+  <div class="card" id="card">
+    <div class="meta">
+      <span class="badge" id="meta">Действие</span>
+      <span class="badge" id="id">#—</span>
+    </div>
+    <div class="text" id="text">Нажми «Случайно», импортируй свой <code>explicit_prompts.json</code> или установи как приложение (iOS).</div>
+    <div class="actions">
+      <button id="dareBtn" class="small">Действие по фильтрам</button>
+      <button id="shareBtn" class="small">Поделиться</button>
+      <button id="exportBtn" class="small">Экспорт</button>
+    </div>
+  </div>
+
+  <div class="list" id="list" style="display:none"></div>
+
+  <div class="footer">
+    Работает офлайн после установки. Для корректной работы на iOS запусти через Safari (не «Предпросмотр»).
+  </div>
+</div>
+
+<script>
+(function(){
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isQuickLook = /QuickLook/.test(ua);
+  if(isIOS && isQuickLook){
+    const ov = document.getElementById('qlOverlay');
+    ov.style.display = 'flex';
+    document.getElementById('tryOpenBtn').addEventListener('click', ()=>{
+      try{ window.location.href = window.location.href; }catch(e){}
+    });
+  }
+})();
+
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredPrompt = e; });
+document.getElementById('installBtn').addEventListener('click', async ()=>{
+  if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt = null; }
+  else alert('Safari (iOS): Поделиться → На экран «Домой». Chrome (Android): меню → Установить приложение.');
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{});
+  });
+}
+
+let prompts = %PROMPTS_JSON%;
+
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+function show(p){
+  document.getElementById('text').textContent = p.text;
+  document.getElementById('meta').textContent = `Действие · ${p.difficulty||'—'} · ${p.target||'—'}`;
+  document.getElementById('id').textContent = `#${p.id ?? '—'}`;
+}
+function pick(diff, targ){
+  let pool = prompts.slice();
+  if(diff && diff!=='all') pool = pool.filter(x=>x.difficulty===diff);
+  if(targ && targ!=='all') pool = pool.filter(x=>x.target===targ);
+  if(pool.length===0) return null;
+  return rand(pool);
+}
+function rebuildList(q,diff,targ){
+  const list = document.getElementById('list');
+  list.innerHTML='';
+  let items = prompts.slice();
+  if(diff && diff!=='all') items = items.filter(x=>x.difficulty===diff);
+  if(targ && targ!=='all') items = items.filter(x=>x.target===targ);
+  if(q) items = items.filter(i=>i.text.toLowerCase().includes(q.toLowerCase()));
+  items.forEach(i=>{
+    const el = document.createElement('div'); el.className='item';
+    el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <strong>#${i.id}</strong>
+      <span class="badge">Действие · ${i.difficulty} · ${i.target}</span>
+    </div><div>${i.text}</div>`;
+    list.appendChild(el);
+  });
+}
+
+document.getElementById('newBtn').addEventListener('click',()=>{
+  const p = pick(document.getElementById('difficulty').value, document.getElementById('target').value) || prompts[0];
+  show(p);
+});
+document.getElementById('dareBtn').addEventListener('click',()=>{
+  const p = pick(document.getElementById('difficulty').value, document.getElementById('target').value) || prompts[0];
+  show(p);
+});
+document.getElementById('listBtn').addEventListener('click',()=>{
+  const list = document.getElementById('list');
+  const vis = list.style.display === 'none';
+  if(vis){ rebuildList(document.getElementById('search').value, document.getElementById('difficulty').value, document.getElementById('target').value); }
+  list.style.display = vis ? 'grid' : 'none';
+});
+document.getElementById('search').addEventListener('input',e=>{
+  rebuildList(e.target.value, document.getElementById('difficulty').value, document.getElementById('target').value);
+});
+document.getElementById('shareBtn').addEventListener('click',async ()=>{
+  const text = document.getElementById('text').textContent;
+  if(navigator.share){ try{ await navigator.share({title:'Действия 18+', text}); }catch(e){} }
+  else{ try{ await navigator.clipboard.writeText(text); alert('Скопировано'); }catch(e){ alert(text); } }
+});
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const blob = new Blob([JSON.stringify(prompts,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='prompts_export.json'; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('importBtn').addEventListener('click',()=> document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const txt = await f.text();
+    const data = JSON.parse(txt);
+    const ok = Array.isArray(data) && data.every(x=>x && x.type==='dare' && ['warmup','game','final'].includes(x.difficulty) && ['for_her','for_him','both'].includes(x.target) && typeof x.text==='string');
+    if(!ok) return alert('Нужен массив: {id?, type:"dare", difficulty, target, text}');
+    prompts = data.map((x,i)=> ({id: x.id ?? (i+1), type:'dare', difficulty:x.difficulty, target:x.target, text:String(x.text)}));
+    alert('Импортировано: '+prompts.length);
+    show(prompts[0]);
+  }catch(err){ alert('Ошибка JSON: '+err); }
+});
+
+show(prompts[0]);
+</script>
+</body>
+</html>

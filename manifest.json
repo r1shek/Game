@@ -1,0 +1,15 @@
+{
+  "name": "Действия 18+ — PWA",
+  "short_name": "Действия 18+",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#070707",
+  "theme_color": "#ff3366",
+  "icons": [
+    {
+      "src": "icons/apple-touch-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
