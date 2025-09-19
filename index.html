@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Действия 18+</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #eee; margin: 0; padding: 20px; }
+    h1 { font-size: 20px; margin-bottom: 10px; }
+    .btn { background: #ff3366; color: #fff; padding: 10px 14px; border: 0; border-radius: 6px; cursor: pointer; margin: 4px 4px 4px 0; }
+    .btn.active { background: #ff6699; }
+    .card { background: #222; padding: 20px; border-radius: 10px; margin-top: 20px; min-height: 120px; }
+    .meta { font-size: 12px; opacity: 0.7; margin-bottom: 10px; }
+    .filters { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>Действия 18+</h1>
+
+  <div>
+    <button class="btn" id="newBtn">Случайно</button>
+    <button class="btn" id="importBtn">Импорт JSON</button>
+    <input id="fileInput" type="file" accept="application/json" style="display:none" />
+  </div>
+
+  <div class="filters">
+    <div><strong>Уровень:</strong><br>
+      <button class="btn diff" data-value="all">Все</button>
+      <button class="btn diff" data-value="warmup">Разогрев</button>
+      <button class="btn diff" data-value="game">Игровая</button>
+      <button class="btn diff" data-value="final">Финал</button>
+    </div>
+    <div style="margin-top:8px"><strong>Для кого:</strong><br>
+      <button class="btn targ" data-value="all">Все</button>
+      <button class="btn targ" data-value="for_her">Для неё</button>
+      <button class="btn targ" data-value="for_him">Для него</button>
+      <button class="btn targ" data-value="both">Обоим</button>
+    </div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="meta" id="meta">—</div>
+    <div id="text">Нажми «Случайно» или импортируй JSON</div>
+  </div>
+
+  <script>
+    let prompts = [];
+    let currentDiff = "all";
+    let currentTarg = "all";
+
+    function rand(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+    function show(p){
+      document.getElementById('text').textContent = p.text;
+      document.getElementById('meta').textContent = `#${p.id} · ${p.difficulty} · ${p.target}`;
+    }
+    function pick(){
+      let pool = prompts.slice();
+      if(currentDiff !== 'all') pool = pool.filter(x=>x.difficulty===currentDiff);
+      if(currentTarg !== 'all') pool = pool.filter(x=>x.target===currentTarg);
+      if(pool.length===0) return null;
+      return rand(pool);
+    }
+
+    document.getElementById('newBtn').addEventListener('click', ()=>{
+      if(prompts.length===0){ alert('Сначала импортируй JSON'); return; }
+      const p = pick() || prompts[0];
+      show(p);
+    });
+
+    document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+    document.getElementById('fileInput').addEventListener('change', async (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      try{
+        const txt = await f.text();
+        const data = JSON.parse(txt);
+        const ok = Array.isArray(data);
+        if(!ok) return alert('Нужен массив JSON');
+        prompts = data.map((x,i)=> ({id: x.id ?? (i+1), type:'dare', difficulty:x.difficulty, target:x.target, text:String(x.text)}));
+        alert('Импортировано: '+prompts.length);
+        show(prompts[0]);
+      }catch(err){ alert('Ошибка JSON: '+err); }
+    });
+
+    // Фильтры-кнопки
+    document.querySelectorAll('.diff').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.diff').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDiff = btn.dataset.value;
+      });
+    });
+    document.querySelectorAll('.targ').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.targ').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTarg = btn.dataset.value;
+      });
+    });
+
+    // По умолчанию активные "Все"
+    document.querySelector('.diff[data-value="all"]').classList.add('active');
+    document.querySelector('.targ[data-value="all"]').classList.add('active');
+  </script>
+</body>
+</html>
