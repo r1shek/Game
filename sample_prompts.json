@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "type": "dare",
+    "difficulty": "warmup",
+    "target": "both",
+    "text": "Поцелуйтесь 30 секунд."
+  },
+  {
+    "id": 2,
+    "type": "dare",
+    "difficulty": "game",
+    "target": "for_her",
+    "text": "Сделай эротичный танец для него."
+  },
+  {
+    "id": 3,
+    "type": "dare",
+    "difficulty": "final",
+    "target": "for_him",
+    "text": "Доведи её до оргазма руками."
+  }
+]
